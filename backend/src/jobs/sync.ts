@@ -59,9 +59,15 @@ export async function syncOnce(): Promise<{ processed: number; skipped: number }
       return "skipped" as const;
     }
 
+    const isFailed = (existing?.status ?? null) === "failed";
+    const failedAttempts = existing?.failed_attempts ?? 0;
+    if (isFailed && failedAttempts >= 3) {
+      logger.debug("Sync skip (falhou e atingiu limite)", { meetingId, failedAttempts });
+      return "skipped" as const;
+    }
+
     const canRetryFailed =
-      (existing?.status ?? null) === "failed" &&
-      (existing?.failed_attempts ?? 0) < 3;
+      isFailed && failedAttempts < 3;
 
     if (existing?.processed_at && !existing?.notification_sent_at) {
       // já processou, só falta notificar
@@ -85,6 +91,7 @@ export async function syncOnce(): Promise<{ processed: number; skipped: number }
           teamsMeetingId: m.id,
           status: "notified",
           lastError: null,
+          failedAttempts: 0,
           notificationSentAt: new Date()
         });
         logger.info("Reunião notificada (reenvio)", { meetingId });
@@ -146,7 +153,8 @@ export async function syncOnce(): Promise<{ processed: number; skipped: number }
         topics: ai.topics,
         processedAt: new Date(),
         status: "processed",
-        lastError: null
+        lastError: null,
+        failedAttempts: 0
       });
 
       await sendMeetingEmail({
@@ -167,6 +175,7 @@ export async function syncOnce(): Promise<{ processed: number; skipped: number }
         teamsMeetingId: m.id,
         status: "notified",
         lastError: null,
+        failedAttempts: 0,
         notificationSentAt: new Date()
       });
 

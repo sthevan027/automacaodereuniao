@@ -76,7 +76,7 @@ export async function upsertMeeting(input: {
         processed_at = coalesce(excluded.processed_at, meetings.processed_at),
         notification_sent_at = coalesce(excluded.notification_sent_at, meetings.notification_sent_at),
         status = coalesce(excluded.status, meetings.status),
-        last_error = coalesce(excluded.last_error, meetings.last_error),
+        last_error = excluded.last_error,
         failed_attempts = coalesce(excluded.failed_attempts, meetings.failed_attempts)
       returning *;
     `,
