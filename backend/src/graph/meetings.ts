@@ -1,6 +1,11 @@
 import { getEnv } from "../config/env";
 import { graphGet, graphGetText } from "./client";
-import type { GraphListResponse, GraphOnlineMeeting, GraphTranscript } from "./types";
+import type {
+  GraphListResponse,
+  GraphMeetingNotes,
+  GraphOnlineMeeting,
+  GraphTranscript
+} from "./types";
 
 const env = getEnv();
 
@@ -80,6 +85,34 @@ export async function getLatestTranscriptText(params: {
   try {
     const text = await graphGetText(contentUrl);
     return text?.trim() ? text : null;
+  } catch {
+    return null;
+  }
+}
+
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+}
+
+/** Texto das meeting notes (beta); falha silenciosa se endpoint/permissão não disponível */
+export async function getCopilotMeetingNotes(params: {
+  userId?: string;
+  onlineMeetingId: string;
+}): Promise<string | null> {
+  const userId = params.userId ?? env.GRAPH_USER_ID;
+  if (!userId) return null;
+
+  const base = "https://graph.microsoft.com/beta";
+  const url = `${base}/users/${encodeURIComponent(
+    userId
+  )}/onlineMeetings/${encodeURIComponent(params.onlineMeetingId)}/meetingNotes`;
+
+  try {
+    const data = await graphGet<GraphMeetingNotes>(url);
+    const raw = data?.noteContent ?? null;
+    if (!raw?.trim()) return null;
+    const plain = stripHtml(raw);
+    return plain?.trim() ? plain : raw.trim();
   } catch {
     return null;
   }

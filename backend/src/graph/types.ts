@@ -27,3 +27,8 @@ export type GraphTranscript = {
   meetingId?: string;
 };
 
+/** Notas do meeting (beta) — ex. conteúdo gerado pelo Copilot */
+export type GraphMeetingNotes = {
+  noteContent?: string | null;
+};
+
