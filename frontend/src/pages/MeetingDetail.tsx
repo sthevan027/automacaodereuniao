@@ -4,6 +4,16 @@ import { getMeeting, reviewMeeting } from "../api/client";
 import type { ActionItem, MeetingDetail } from "../api/types";
 import { ActionItems } from "../components/ActionItems";
 
+function newActionRowId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `row-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+}
+
+/** Inclui id estável de linha (não persiste na API) para keys de lista e foco em inputs. */
+type ActionFormRow = ActionItem & { rowId: string };
+
 function formatDateTime(value?: string | null) {
   if (!value) return "—";
   const d = new Date(value);
@@ -33,10 +43,13 @@ function statusLabel(status?: string | null) {
   }
 }
 
-function normalizeActions(items: ActionItem[] | null | undefined): ActionItem[] {
+function normalizeActions(items: ActionItem[] | null | undefined): ActionFormRow[] {
   const raw = items ?? [];
-  if (!raw.length) return [{ description: "", owner: "", deadline: "" }];
+  if (!raw.length) {
+    return [{ rowId: newActionRowId(), description: "", owner: "", deadline: "" }];
+  }
   return raw.map((a) => ({
+    rowId: newActionRowId(),
     description: a.description ?? "",
     owner: a.owner ?? "",
     deadline: a.deadline ?? ""
@@ -60,7 +73,7 @@ function PendingReviewForm(props: {
   const [topicsText, setTopicsText] = useState(() =>
     (meeting.topics ?? []).join("\n")
   );
-  const [actions, setActions] = useState<ActionItem[]>(() =>
+  const [actions, setActions] = useState<ActionFormRow[]>(() =>
     normalizeActions(meeting.action_items)
   );
   const [reviewedBy, setReviewedBy] = useState("");
@@ -73,7 +86,7 @@ function PendingReviewForm(props: {
       .filter(Boolean);
     const action_items = actions
       .filter((a) => (a.description ?? "").trim())
-      .map((a) => ({
+      .map(({ rowId: _rowId, ...a }) => ({
         description: (a.description ?? "").trim(),
         owner: (a.owner ?? "").trim() || null,
         deadline: (a.deadline ?? "").trim() || null
@@ -139,13 +152,18 @@ function PendingReviewForm(props: {
   function updateAction(i: number, field: keyof ActionItem, value: string) {
     setActions((prev) => {
       const next = [...prev];
-      next[i] = { ...next[i], [field]: value };
+      const cur = next[i];
+      if (!cur) return prev;
+      next[i] = { ...cur, [field]: value };
       return next;
     });
   }
 
   function addActionRow() {
-    setActions((prev) => [...prev, { description: "", owner: "", deadline: "" }]);
+    setActions((prev) => [
+      ...prev,
+      { rowId: newActionRowId(), description: "", owner: "", deadline: "" }
+    ]);
   }
 
   function removeActionRow(i: number) {
@@ -188,7 +206,7 @@ function PendingReviewForm(props: {
           <span className="text-sm text-zinc-400">Action items</span>
           {actions.map((a, i) => (
             <div
-              key={`${i}-${a.description ?? ""}`}
+              key={a.rowId}
               className="flex flex-col gap-2 rounded-lg border border-zinc-800 bg-zinc-950/80 p-3 sm:flex-row sm:flex-wrap sm:items-end"
             >
               <label className="min-w-0 flex-1 text-xs">
