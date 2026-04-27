@@ -1,0 +1,41 @@
+{
+  "name": "automacao-reuniao-backend",
+  "private": true,
+  "version": "0.1.0",
+  "main": "dist/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "nodemon",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "migrate": "ts-node -T src/db/migrate.ts",
+    "sync": "ts-node -T src/jobs/runSyncOnce.ts"
+  },
+  "dependencies": {
+    "@azure/msal-node": "^2.20.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2",
+    "node-cron": "^3.0.3",
+    "nodemailer": "^6.10.1",
+    "openai": "^4.90.0",
+    "pg": "^8.16.3",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.18",
+    "@types/express": "^4.17.23",
+    "@types/node": "^20.19.11",
+    "@types/nodemailer": "^6.4.17",
+    "@types/pg": "^8.15.5",
+    "@typescript-eslint/eslint-plugin": "^8.42.0",
+    "@typescript-eslint/parser": "^8.42.0",
+    "eslint": "^9.34.0",
+    "nodemon": "^3.1.10",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2"
+  }
+}
+

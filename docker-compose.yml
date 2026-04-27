@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:16
+    container_name: automacao_reuniao_db
+    environment:
+      POSTGRES_DB: reunioes
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+volumes:
+  db_data:
+

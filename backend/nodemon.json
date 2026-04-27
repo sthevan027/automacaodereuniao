@@ -1,0 +1,7 @@
+{
+  "watch": ["src"],
+  "ext": "ts,json",
+  "ignore": ["src/db/migrations/*.sql"],
+  "exec": "node -r dotenv/config -r ts-node/register src/index.ts"
+}
+
