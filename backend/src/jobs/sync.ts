@@ -1,6 +1,9 @@
 import { getEnv } from "../config/env";
-import { listRecentOnlineMeetings, getLatestTranscriptText } from "../graph/meetings";
-import { processMeetingWithAi } from "../ai/processor";
+import {
+  getCopilotMeetingNotes,
+  getLatestTranscriptText,
+  listRecentOnlineMeetings
+} from "../graph/meetings";
 import { findMeetingByTeamsId, markMeetingFailed, upsertMeeting } from "../db/meetingsRepo";
 import { sendMeetingEmail } from "../notifications/email";
 import { postTeamsWebhook } from "../notifications/teams";
@@ -53,24 +56,24 @@ export async function syncOnce(): Promise<{ processed: number; skipped: number }
   const outcomes = await mapWithConcurrency(meetings, concurrency, async (m) => {
     const meetingId = m.id;
     const existing = await findMeetingByTeamsId(m.id);
-    const isDone = Boolean(existing?.processed_at && existing?.notification_sent_at);
-    if (isDone) {
+
+    if (existing?.status === "notified" || Boolean(existing?.notification_sent_at)) {
       logger.debug("Sync skip (já notificado)", { meetingId });
       return "skipped" as const;
     }
 
-    const isFailed = (existing?.status ?? null) === "failed";
     const failedAttempts = existing?.failed_attempts ?? 0;
-    if (isFailed && failedAttempts >= 3) {
+    if ((existing?.status ?? "") === "failed" && failedAttempts >= 3) {
       logger.debug("Sync skip (falhou e atingiu limite)", { meetingId, failedAttempts });
       return "skipped" as const;
     }
 
-    const canRetryFailed =
-      isFailed && failedAttempts < 3;
+    const needsNotifyRetry =
+      Boolean(existing?.processed_at) &&
+      !existing?.notification_sent_at &&
+      (existing.status === "approved" || existing.status === "processed");
 
-    if (existing?.processed_at && !existing?.notification_sent_at) {
-      // já processou, só falta notificar
+    if (needsNotifyRetry && existing) {
       const saved = existing;
       try {
         await sendMeetingEmail({
@@ -109,8 +112,16 @@ export async function syncOnce(): Promise<{ processed: number; skipped: number }
       }
     }
 
+    if (existing?.status === "pending_review" || existing?.status === "rejected") {
+      logger.debug("Sync skip (fluxo de revisão)", { meetingId, status: existing.status });
+      return "skipped" as const;
+    }
+
+    const canRetryFailed =
+      (existing?.status ?? "") === "failed" && failedAttempts < 3;
+
     if (existing?.processed_at && !canRetryFailed) {
-      logger.debug("Sync skip (processado)", { meetingId });
+      logger.debug("Sync skip (já capturado)", { meetingId });
       return "skipped" as const;
     }
 
@@ -118,7 +129,6 @@ export async function syncOnce(): Promise<{ processed: number; skipped: number }
     const organizerEmail = m.organizer?.emailAddress?.address ?? null;
     const participants = parseParticipants(m);
 
-    // marca como capturado/atualiza metadados
     await upsertMeeting({
       teamsMeetingId: m.id,
       subject,
@@ -136,57 +146,33 @@ export async function syncOnce(): Promise<{ processed: number; skipped: number }
         onlineMeetingId: m.id
       });
 
-      const ai = await processMeetingWithAi({
-        subject,
-        organizerEmail,
-        participants,
-        transcript,
-        teamsSummary: null
-      });
+      const teamsNotes =
+        (await getCopilotMeetingNotes({
+          userId: env.GRAPH_USER_ID,
+          onlineMeetingId: m.id
+        })) ?? null;
 
-      const saved = await upsertMeeting({
+      await upsertMeeting({
         teamsMeetingId: m.id,
         transcript,
-        teamsSummary: null,
-        aiSummary: ai.ai_summary,
-        actionItems: ai.action_items,
-        topics: ai.topics,
+        teamsSummary: teamsNotes,
+        aiSummary: null,
+        actionItems: [],
+        topics: [],
         processedAt: new Date(),
-        status: "processed",
+        status: "pending_review",
         lastError: null,
         failedAttempts: 0
       });
 
-      await sendMeetingEmail({
-        subject: saved.subject ?? saved.teams_meeting_id,
-        when: saved.start_time,
-        aiSummary: saved.ai_summary,
-        actionItems: (saved.action_items as any) ?? [],
-        topics: (saved.topics as any) ?? []
-      });
-
-      await postTeamsWebhook({
-        title: saved.subject ?? "Reunião sincronizada",
-        summary: saved.ai_summary,
-        actionItems: (saved.action_items as any) ?? []
-      });
-
-      await upsertMeeting({
-        teamsMeetingId: m.id,
-        status: "notified",
-        lastError: null,
-        failedAttempts: 0,
-        notificationSentAt: new Date()
-      });
-
-      logger.info("Reunião processada e notificada", { meetingId });
+      logger.info("Reunião capturada — aguardando revisão manual", { meetingId });
       return "processed" as const;
     } catch (e: any) {
       await markMeetingFailed({
         teamsMeetingId: m.id,
-        error: e?.message ?? "Falha ao processar reunião"
+        error: e?.message ?? "Falha ao capturar conteúdo da reunião"
       });
-      logger.warn("Falha ao processar reunião", { meetingId, error: e?.message ?? "erro" });
+      logger.warn("Falha ao capturar reunião", { meetingId, error: e?.message ?? "erro" });
       return "failed" as const;
     }
   });
@@ -203,4 +189,3 @@ export async function syncOnce(): Promise<{ processed: number; skipped: number }
 
   return { processed, skipped };
 }
-
