@@ -23,7 +23,7 @@ async function alreadyRan(id: string): Promise<boolean> {
   const res = await pool.query("select 1 from schema_migrations where id = $1", [
     id
   ]);
-  return res.rowCount > 0;
+  return (res.rowCount ?? 0) > 0;
 }
 
 async function runMigration(id: string, sql: string) {
@@ -39,7 +39,6 @@ async function main() {
     const full = path.join(__dirname, "migrations", file);
     const sql = await readFile(full, "utf8");
     await runMigration(file, sql);
-    // eslint-disable-next-line no-console
     console.log(`Migration aplicada: ${file}`);
   }
 
@@ -47,7 +46,6 @@ async function main() {
 }
 
 main().catch(async (err) => {
-  // eslint-disable-next-line no-console
   console.error(err);
   try {
     await pool.end();
