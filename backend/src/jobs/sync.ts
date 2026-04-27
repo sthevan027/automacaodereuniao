@@ -71,7 +71,7 @@ export async function syncOnce(): Promise<{ processed: number; skipped: number }
     const needsNotifyRetry =
       Boolean(existing?.processed_at) &&
       !existing?.notification_sent_at &&
-      (existing.status === "approved" || existing.status === "processed");
+      (existing?.status === "approved" || existing?.status === "processed");
 
     if (needsNotifyRetry && existing) {
       const saved = existing;
