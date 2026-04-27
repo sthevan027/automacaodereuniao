@@ -1,4 +1,9 @@
-import type { ApiListResponse, MeetingDetail, MeetingListItem } from "./types";
+import type {
+  ApiListResponse,
+  MeetingDetail,
+  MeetingListItem,
+  MeetingReviewPayload
+} from "./types";
 
 function getBasicAuthHeader() {
   const user = import.meta.env.VITE_BASIC_AUTH_USER as string | undefined;
@@ -29,6 +34,8 @@ export async function listMeetings(params?: {
   q?: string;
   from?: string;
   to?: string;
+  company?: string;
+  status?: string;
   page?: number;
   pageSize?: number;
 }): Promise<ApiListResponse<MeetingListItem>> {
@@ -36,6 +43,8 @@ export async function listMeetings(params?: {
   if (params?.q) sp.set("q", params.q);
   if (params?.from) sp.set("from", params.from);
   if (params?.to) sp.set("to", params.to);
+  if (params?.company) sp.set("company", params.company);
+  if (params?.status) sp.set("status", params.status);
   if (params?.page) sp.set("page", String(params.page));
   if (params?.pageSize) sp.set("pageSize", String(params.pageSize));
 
@@ -57,6 +66,17 @@ export async function getMeeting(
   return (await res.json()) as MeetingDetail;
 }
 
+export async function reviewMeeting(
+  id: string,
+  body: MeetingReviewPayload
+): Promise<MeetingDetail> {
+  const res = await apiFetch(`/api/meetings/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    body: JSON.stringify(body)
+  });
+  return (await res.json()) as MeetingDetail;
+}
+
 export async function syncNow(): Promise<
   | { startedAt: string; processedCount: number; skippedCount: number }
   | { startedAt: string; error: string }
@@ -66,4 +86,3 @@ export async function syncNow(): Promise<
     | { startedAt: string; processedCount: number; skippedCount: number }
     | { startedAt: string; error: string };
 }
-

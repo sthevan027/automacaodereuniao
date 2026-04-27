@@ -92,11 +92,13 @@ export function meetingsRouter() {
     }
 
     if (body.action === "reject") {
-      const updated = await updateMeetingById(id, {
+      const rejPatch: MeetingUpdatePatch = {
         status: "rejected",
         reviewed_at: new Date(),
         reviewed_by: reviewedBy
-      });
+      };
+      if (body.company !== undefined) rejPatch.company = body.company;
+      const updated = await updateMeetingById(id, rejPatch);
       return res.json(updated);
     }
 

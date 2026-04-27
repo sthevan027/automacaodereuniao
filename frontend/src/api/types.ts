@@ -7,13 +7,22 @@ export type ApiListResponse<T> = {
 
 export type ActionItem = {
   description?: string;
-  owner?: string;
-  deadline?: string;
+  owner?: string | null;
+  deadline?: string | null;
 };
 
 export type Participant = {
   name?: string;
   email?: string;
+};
+
+export type MeetingReviewPayload = {
+  action: "approve" | "reject" | "update";
+  reviewed_by?: string;
+  company?: string | null;
+  ai_summary?: string | null;
+  topics?: string[];
+  action_items?: ActionItem[];
 };
 
 export type MeetingListItem = {
@@ -24,6 +33,7 @@ export type MeetingListItem = {
   end_time: string | null;
   organizer_email: string | null;
   ai_summary: string | null;
+  teams_summary?: string | null;
   action_items: ActionItem[] | null;
   topics: string[] | null;
   processed_at: string | null;
@@ -32,6 +42,9 @@ export type MeetingListItem = {
   last_error?: string | null;
   failed_attempts?: number;
   created_at?: string;
+  company?: string | null;
+  reviewed_at?: string | null;
+  reviewed_by?: string | null;
 };
 
 export type MeetingDetail = {
@@ -53,5 +66,7 @@ export type MeetingDetail = {
   status?: string | null;
   last_error?: string | null;
   failed_attempts?: number;
+  company?: string | null;
+  reviewed_at?: string | null;
+  reviewed_by?: string | null;
 };
-
