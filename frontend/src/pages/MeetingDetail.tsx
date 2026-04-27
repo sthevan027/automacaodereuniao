@@ -86,7 +86,7 @@ function PendingReviewForm(props: {
       .filter(Boolean);
     const action_items = actions
       .filter((a) => (a.description ?? "").trim())
-      .map(({ rowId: _rowId, ...a }) => ({
+      .map((a) => ({
         description: (a.description ?? "").trim(),
         owner: (a.owner ?? "").trim() || null,
         deadline: (a.deadline ?? "").trim() || null
