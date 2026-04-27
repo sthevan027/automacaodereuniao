@@ -5,8 +5,8 @@ const envSchema = z.object({
   AZURE_CLIENT_SECRET: z.string().min(1),
   AZURE_TENANT_ID: z.string().min(1),
 
-  OPENAI_API_KEY: z.string().min(1),
-  OPENAI_MODEL: z.string().min(1).default("gpt-4o-mini"),
+  OPENAI_API_KEY: z.string().optional(),
+  OPENAI_MODEL: z.string().optional(),
 
   DATABASE_URL: z.string().url(),
 
