@@ -1,4 +1,4 @@
-# Automação de Reuniões (Fase 1) — Teams + IA
+# Automação de Reuniões — Teams + IA
 
 Base completa para:
 - Sincronizar reuniões/transcrições/resumos do Microsoft Teams (via Microsoft Graph)
