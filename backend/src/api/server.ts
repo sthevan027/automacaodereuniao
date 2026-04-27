@@ -15,7 +15,7 @@ export function createServer() {
       env.FRONTEND_ORIGIN
         ? {
             origin: env.FRONTEND_ORIGIN,
-            methods: ["GET", "POST", "OPTIONS"],
+            methods: ["GET", "POST", "PATCH", "OPTIONS"],
             allowedHeaders: ["Authorization", "Content-Type"]
           }
         : undefined
