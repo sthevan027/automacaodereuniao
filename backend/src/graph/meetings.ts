@@ -23,7 +23,6 @@ export async function listRecentOnlineMeetings(params?: {
 
   const lookbackHours = params?.lookbackHours ?? env.GRAPH_LOOKBACK_HOURS;
   const since = new Date(Date.now() - lookbackHours * 60 * 60 * 1000);
-  const sinceIso = since.toISOString();
 
   const base = "https://graph.microsoft.com/v1.0";
   const select = [
