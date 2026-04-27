@@ -1,0 +1,11 @@
+BEGIN;
+
+ALTER TABLE meetings
+  ADD COLUMN IF NOT EXISTS status VARCHAR,
+  ADD COLUMN IF NOT EXISTS last_error TEXT,
+  ADD COLUMN IF NOT EXISTS failed_attempts INT NOT NULL DEFAULT 0;
+
+CREATE INDEX IF NOT EXISTS idx_meetings_status ON meetings (status);
+
+COMMIT;
+

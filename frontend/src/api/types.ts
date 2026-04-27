@@ -1,8 +1,8 @@
 export type ApiListResponse<T> = {
   page: number;
-  limit: number;
+  pageSize: number;
   total: number;
-  rows: T[];
+  items: T[];
 };
 
 export type ActionItem = {
@@ -28,6 +28,9 @@ export type MeetingListItem = {
   topics: string[] | null;
   processed_at: string | null;
   notification_sent_at: string | null;
+  status?: string | null;
+  last_error?: string | null;
+  failed_attempts?: number;
   created_at?: string;
 };
 
@@ -47,5 +50,8 @@ export type MeetingDetail = {
   created_at?: string;
   processed_at: string | null;
   notification_sent_at: string | null;
+  status?: string | null;
+  last_error?: string | null;
+  failed_attempts?: number;
 };
 

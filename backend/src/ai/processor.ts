@@ -34,6 +34,34 @@ function safeJsonParse(text: string): unknown {
   return JSON.parse(text);
 }
 
+async function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+async function withRetries<T>(
+  fn: () => Promise<T>,
+  opts?: { retries?: number; baseDelayMs?: number; maxDelayMs?: number }
+): Promise<T> {
+  const retries = opts?.retries ?? 3;
+  const baseDelayMs = opts?.baseDelayMs ?? 500;
+  const maxDelayMs = opts?.maxDelayMs ?? 5_000;
+
+  let lastErr: unknown = null;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await fn();
+    } catch (e: any) {
+      lastErr = e;
+      const status = e?.status ?? e?.response?.status;
+      const retryable = status === 429 || (typeof status === "number" && status >= 500);
+      if (!retryable || attempt === retries) throw e;
+      const backoff = Math.min(maxDelayMs, baseDelayMs * Math.pow(2, attempt));
+      await sleep(backoff);
+    }
+  }
+  throw lastErr ?? new Error("OpenAI falhou");
+}
+
 export async function processMeetingWithAi(input: {
   subject?: string | null;
   organizerEmail?: string | null;
@@ -43,15 +71,17 @@ export async function processMeetingWithAi(input: {
 }): Promise<AiOutput> {
   const prompt = buildMeetingPrompt(input);
 
-  const completion = await openai.chat.completions.create({
-    model: env.OPENAI_MODEL,
-    messages: [
-      { role: "system", content: "Responda somente com JSON válido." },
-      { role: "user", content: prompt }
-    ],
-    response_format: { type: "json_object" },
-    temperature: 0.2
-  });
+  const completion = await withRetries(() =>
+    openai.chat.completions.create({
+      model: env.OPENAI_MODEL,
+      messages: [
+        { role: "system", content: "Responda somente com JSON válido." },
+        { role: "user", content: prompt }
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.2
+    })
+  );
 
   const content = completion.choices[0]?.message?.content ?? "";
   const parsed = safeJsonParse(content);

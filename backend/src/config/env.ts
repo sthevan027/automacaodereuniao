@@ -10,6 +10,10 @@ const envSchema = z.object({
 
   DATABASE_URL: z.string().url(),
 
+  BASIC_AUTH_USER: z.string().min(1),
+  BASIC_AUTH_PASS: z.string().min(1),
+  FRONTEND_ORIGIN: z.string().optional(),
+
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.coerce.number().int().positive().optional(),
   SMTP_USER: z.string().optional(),
@@ -32,7 +36,7 @@ export function getEnv(): Env {
   const parsed = envSchema.safeParse(process.env);
   if (!parsed.success) {
     const issues = parsed.error.issues
-      .map((i) => `${i.path.join(".")}: ${i.message}`)
+      .map((i: z.ZodIssue) => `${i.path.join(".")}: ${i.message}`)
       .join("\n");
     throw new Error(`Env inválido:\n${issues}`);
   }
