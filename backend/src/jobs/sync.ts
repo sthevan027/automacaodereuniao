@@ -79,7 +79,7 @@ export async function syncOnce(): Promise<{ processed: number; skipped: number }
         await sendMeetingEmail({
           subject: saved.subject ?? saved.teams_meeting_id,
           when: saved.start_time,
-          aiSummary: saved.ai_summary,
+          summary: saved.ai_summary,
           actionItems: (saved.action_items as any) ?? [],
           topics: (saved.topics as any) ?? []
         });
