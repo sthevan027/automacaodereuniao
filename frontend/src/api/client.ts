@@ -1,10 +1,19 @@
 import type { ApiListResponse, MeetingDetail, MeetingListItem } from "./types";
 
+function getBasicAuthHeader() {
+  const user = import.meta.env.VITE_BASIC_AUTH_USER as string | undefined;
+  const pass = import.meta.env.VITE_BASIC_AUTH_PASS as string | undefined;
+  if (!user || !pass) return undefined;
+  return `Basic ${btoa(`${user}:${pass}`)}`;
+}
+
 async function apiFetch(path: string, init?: RequestInit) {
+  const auth = getBasicAuthHeader();
   const res = await fetch(path, {
     ...init,
     headers: {
       "Content-Type": "application/json",
+      ...(auth ? { Authorization: auth } : {}),
       ...(init?.headers ?? {})
     }
   });
@@ -18,40 +27,43 @@ async function apiFetch(path: string, init?: RequestInit) {
 
 export async function listMeetings(params?: {
   q?: string;
-  start?: string;
-  end?: string;
+  from?: string;
+  to?: string;
   page?: number;
-  limit?: number;
+  pageSize?: number;
 }): Promise<ApiListResponse<MeetingListItem>> {
   const sp = new URLSearchParams();
   if (params?.q) sp.set("q", params.q);
-  if (params?.start) sp.set("start", params.start);
-  if (params?.end) sp.set("end", params.end);
+  if (params?.from) sp.set("from", params.from);
+  if (params?.to) sp.set("to", params.to);
   if (params?.page) sp.set("page", String(params.page));
-  if (params?.limit) sp.set("limit", String(params.limit));
+  if (params?.pageSize) sp.set("pageSize", String(params.pageSize));
 
   const qs = sp.toString();
   const res = await apiFetch(`/api/meetings${qs ? `?${qs}` : ""}`);
   return (await res.json()) as ApiListResponse<MeetingListItem>;
 }
 
-export async function getMeeting(id: string): Promise<MeetingDetail> {
-  const res = await apiFetch(`/api/meetings/${encodeURIComponent(id)}`);
+export async function getMeeting(
+  id: string,
+  opts?: { includeTranscript?: boolean }
+): Promise<MeetingDetail> {
+  const sp = new URLSearchParams();
+  if (opts?.includeTranscript) sp.set("includeTranscript", "1");
+  const qs = sp.toString();
+  const res = await apiFetch(
+    `/api/meetings/${encodeURIComponent(id)}${qs ? `?${qs}` : ""}`
+  );
   return (await res.json()) as MeetingDetail;
 }
 
-export async function syncNow(): Promise<{
-  ok: boolean;
-  processed?: number;
-  skipped?: number;
-  error?: string;
-}> {
+export async function syncNow(): Promise<
+  | { startedAt: string; processedCount: number; skippedCount: number }
+  | { startedAt: string; error: string }
+> {
   const res = await apiFetch("/api/sync", { method: "POST" });
-  return (await res.json()) as {
-    ok: boolean;
-    processed?: number;
-    skipped?: number;
-    error?: string;
-  };
+  return (await res.json()) as
+    | { startedAt: string; processedCount: number; skippedCount: number }
+    | { startedAt: string; error: string };
 }
 

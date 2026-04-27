@@ -29,7 +29,7 @@ export function MeetingDetailPage() {
       setLoading(true);
       setError(null);
       try {
-        const res = await getMeeting(meetingId);
+        const res = await getMeeting(meetingId, { includeTranscript: true });
         if (!cancelled) setData(res);
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : "Falha ao carregar reunião";

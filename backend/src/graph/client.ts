@@ -1,8 +1,9 @@
 import { getGraphAccessToken } from "./auth";
+import { fetchWithRetry } from "../lib/http";
 
 export async function graphGet<T>(url: string): Promise<T> {
   const token = await getGraphAccessToken();
-  const res = await fetch(url, {
+  const res = await fetchWithRetry(url, {
     headers: {
       Authorization: `Bearer ${token}`
     }
@@ -17,7 +18,7 @@ export async function graphGet<T>(url: string): Promise<T> {
 
 export async function graphGetText(url: string): Promise<string> {
   const token = await getGraphAccessToken();
-  const res = await fetch(url, {
+  const res = await fetchWithRetry(url, {
     headers: {
       Authorization: `Bearer ${token}`
     }

@@ -24,6 +24,7 @@ docker-compose up -d
 2) Configure variáveis de ambiente:
 
 - Copie `.env.example` para `.env` na raiz e também em `backend/.env` (o backend é quem consome).
+- Copie `frontend/.env.example` para `frontend/.env` (credenciais do painel para Basic Auth).
 
 3) Instale dependências:
 
@@ -43,12 +44,28 @@ pnpm migrate
 pnpm dev
 ```
 
+## Segurança (Basic Auth)
+
+- `GET /api/health` é público.
+- `GET /api/meetings`, `GET /api/meetings/:id` e `POST /api/sync` exigem **Basic Auth**.
+- Ajuste as credenciais em `BASIC_AUTH_USER` e `BASIC_AUTH_PASS`.
+
 ## Endpoints
 
 - `GET /api/health`
 - `GET /api/meetings`
 - `GET /api/meetings/:id`
 - `POST /api/sync`
+
+### Query params e respostas
+
+- **GET `/api/meetings`**
+  - Query: `q`, `from`, `to`, `page`, `pageSize`
+  - Response: `{ items, page, pageSize, total }`
+- **GET `/api/meetings/:id`**
+  - Query: `includeTranscript=1` para incluir a transcrição
+- **POST `/api/sync`**
+  - Response: `{ startedAt, processedCount, skippedCount }` (ou `{ startedAt, error }`)
 
 ## Azure AD / Microsoft Graph (App Registration)
 

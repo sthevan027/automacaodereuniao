@@ -14,7 +14,7 @@ export function HomePage() {
   const [rows, setRows] = useState<MeetingListItem[]>([]);
 
   const query = useMemo(
-    () => ({ q: q.trim() || undefined, start: from || undefined, end: to || undefined }),
+    () => ({ q: q.trim() || undefined, from: from || undefined, to: to || undefined }),
     [q, from, to]
   );
 
@@ -22,8 +22,8 @@ export function HomePage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await listMeetings({ ...query, page: 1, limit: 50 });
-      setRows(data.rows);
+      const data = await listMeetings({ ...query, page: 1, pageSize: 50 });
+      setRows(data.items);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Falha ao carregar reuniões");
     } finally {
@@ -40,7 +40,8 @@ export function HomePage() {
     setSyncing(true);
     setError(null);
     try {
-      await syncNow();
+      const r = await syncNow();
+      if ("error" in r) throw new Error(r.error);
       await load();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Falha ao sincronizar");

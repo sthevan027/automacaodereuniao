@@ -16,6 +16,9 @@ export type DbMeeting = {
   created_at: string;
   processed_at: string | null;
   notification_sent_at: string | null;
+  status?: string | null;
+  last_error?: string | null;
+  failed_attempts?: number;
 };
 
 export async function upsertMeeting(input: {
@@ -32,6 +35,9 @@ export async function upsertMeeting(input: {
   topics?: unknown | null;
   processedAt?: Date | null;
   notificationSentAt?: Date | null;
+  status?: string | null;
+  lastError?: string | null;
+  failedAttempts?: number | null;
 }): Promise<DbMeeting> {
   const res = await pool.query<DbMeeting>(
     `
@@ -48,10 +54,13 @@ export async function upsertMeeting(input: {
         action_items,
         topics,
         processed_at,
-        notification_sent_at
+        notification_sent_at,
+        status,
+        last_error,
+        failed_attempts
       )
       values (
-        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16
       )
       on conflict (teams_meeting_id) do update set
         subject = coalesce(excluded.subject, meetings.subject),
@@ -65,7 +74,10 @@ export async function upsertMeeting(input: {
         action_items = coalesce(excluded.action_items, meetings.action_items),
         topics = coalesce(excluded.topics, meetings.topics),
         processed_at = coalesce(excluded.processed_at, meetings.processed_at),
-        notification_sent_at = coalesce(excluded.notification_sent_at, meetings.notification_sent_at)
+        notification_sent_at = coalesce(excluded.notification_sent_at, meetings.notification_sent_at),
+        status = coalesce(excluded.status, meetings.status),
+        last_error = excluded.last_error,
+        failed_attempts = coalesce(excluded.failed_attempts, meetings.failed_attempts)
       returning *;
     `,
     [
@@ -81,7 +93,10 @@ export async function upsertMeeting(input: {
       input.actionItems ?? null,
       input.topics ?? null,
       input.processedAt ? input.processedAt.toISOString() : null,
-      input.notificationSentAt ? input.notificationSentAt.toISOString() : null
+      input.notificationSentAt ? input.notificationSentAt.toISOString() : null,
+      input.status ?? null,
+      input.lastError ?? null,
+      input.failedAttempts ?? null
     ]
   );
 
@@ -150,5 +165,22 @@ export async function findMeetingByTeamsId(
     [teamsMeetingId]
   );
   return res.rows[0] ?? null;
+}
+
+export async function markMeetingFailed(params: {
+  teamsMeetingId: string;
+  error: string;
+}): Promise<void> {
+  await pool.query(
+    `
+      update meetings
+      set
+        status = 'failed',
+        last_error = $2,
+        failed_attempts = failed_attempts + 1
+      where teams_meeting_id = $1
+    `,
+    [params.teamsMeetingId, params.error]
+  );
 }
 
