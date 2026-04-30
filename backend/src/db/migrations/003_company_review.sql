@@ -1,0 +1,10 @@
+BEGIN;
+
+ALTER TABLE meetings
+  ADD COLUMN IF NOT EXISTS company VARCHAR(255),
+  ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS reviewed_by VARCHAR(255);
+
+CREATE INDEX IF NOT EXISTS idx_meetings_company ON meetings (company);
+
+COMMIT;

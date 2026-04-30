@@ -19,6 +19,9 @@ export type DbMeeting = {
   status?: string | null;
   last_error?: string | null;
   failed_attempts?: number;
+  company?: string | null;
+  reviewed_at?: string | null;
+  reviewed_by?: string | null;
 };
 
 export async function upsertMeeting(input: {
@@ -38,6 +41,9 @@ export async function upsertMeeting(input: {
   status?: string | null;
   lastError?: string | null;
   failedAttempts?: number | null;
+  company?: string | null;
+  reviewedAt?: Date | null;
+  reviewedBy?: string | null;
 }): Promise<DbMeeting> {
   const res = await pool.query<DbMeeting>(
     `
@@ -57,10 +63,13 @@ export async function upsertMeeting(input: {
         notification_sent_at,
         status,
         last_error,
-        failed_attempts
+        failed_attempts,
+        company,
+        reviewed_at,
+        reviewed_by
       )
       values (
-        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19
       )
       on conflict (teams_meeting_id) do update set
         subject = coalesce(excluded.subject, meetings.subject),
@@ -77,7 +86,10 @@ export async function upsertMeeting(input: {
         notification_sent_at = coalesce(excluded.notification_sent_at, meetings.notification_sent_at),
         status = coalesce(excluded.status, meetings.status),
         last_error = excluded.last_error,
-        failed_attempts = coalesce(excluded.failed_attempts, meetings.failed_attempts)
+        failed_attempts = coalesce(excluded.failed_attempts, meetings.failed_attempts),
+        company = coalesce(excluded.company, meetings.company),
+        reviewed_at = coalesce(excluded.reviewed_at, meetings.reviewed_at),
+        reviewed_by = coalesce(excluded.reviewed_by, meetings.reviewed_by)
       returning *;
     `,
     [
@@ -96,17 +108,84 @@ export async function upsertMeeting(input: {
       input.notificationSentAt ? input.notificationSentAt.toISOString() : null,
       input.status ?? null,
       input.lastError ?? null,
-      input.failedAttempts ?? null
+      input.failedAttempts ?? null,
+      input.company ?? null,
+      input.reviewedAt ? input.reviewedAt.toISOString() : null,
+      input.reviewedBy ?? null
     ]
   );
 
   return res.rows[0]!;
 }
 
+export type MeetingUpdatePatch = Partial<{
+  company: string | null;
+  subject: string | null;
+  transcript: string | null;
+  teams_summary: string | null;
+  ai_summary: string | null;
+  action_items: unknown | null;
+  topics: unknown | null;
+  processed_at: Date | null;
+  notification_sent_at: Date | null;
+  status: string | null;
+  reviewed_at: Date | null;
+  reviewed_by: string | null;
+  last_error: string | null;
+  failed_attempts: number | null;
+}>;
+
+export async function updateMeetingById(
+  id: string,
+  patch: MeetingUpdatePatch
+): Promise<DbMeeting | null> {
+  const entries = Object.entries(patch).filter(([, v]) => v !== undefined);
+  if (!entries.length) return getMeetingById(id);
+
+  const sets: string[] = [];
+  const values: unknown[] = [];
+  let i = 1;
+  for (const [key, value] of entries) {
+    sets.push(`${key} = $${i}`);
+    if (
+      key === "processed_at" ||
+      key === "notification_sent_at" ||
+      key === "reviewed_at"
+    ) {
+      values.push(value instanceof Date ? value.toISOString() : value);
+    } else {
+      values.push(value ?? null);
+    }
+    i++;
+  }
+  values.push(id);
+
+  const res = await pool.query<DbMeeting>(
+    `
+      update meetings
+      set ${sets.join(", ")}
+      where id = $${i}
+      returning *;
+    `,
+    values
+  );
+  return res.rows[0] ?? null;
+}
+
+/** Alias semântico para revisão manual da ata */
+export async function overwriteMeetingReview(
+  id: string,
+  patch: MeetingUpdatePatch
+): Promise<DbMeeting | null> {
+  return updateMeetingById(id, patch);
+}
+
 export async function getMeetings(params: {
   q?: string;
   start?: Date;
   end?: Date;
+  company?: string;
+  status?: string;
   page: number;
   limit: number;
 }): Promise<{ rows: DbMeeting[]; total: number }> {
@@ -115,7 +194,18 @@ export async function getMeetings(params: {
 
   if (params.q) {
     values.push(`%${params.q}%`);
-    where.push(`(subject ilike $${values.length} or ai_summary ilike $${values.length})`);
+    const n = values.length;
+    where.push(
+      `(subject ilike $${n} or ai_summary ilike $${n} or teams_summary ilike $${n} or company ilike $${n})`
+    );
+  }
+  if (params.company?.trim()) {
+    values.push(`%${params.company.trim()}%`);
+    where.push(`company ilike $${values.length}`);
+  }
+  if (params.status?.trim()) {
+    values.push(params.status.trim());
+    where.push(`status = $${values.length}`);
   }
   if (params.start) {
     values.push(params.start.toISOString());
@@ -183,4 +273,3 @@ export async function markMeetingFailed(params: {
     [params.teamsMeetingId, params.error]
   );
 }
-

@@ -17,7 +17,7 @@ function isEmailConfigured() {
 export async function sendMeetingEmail(input: {
   subject: string;
   when?: string | null;
-  aiSummary?: string | null;
+  summary?: string | null;
   actionItems?: Array<{ description: string; owner?: string | null; deadline?: string | null }>;
   topics?: string[];
 }): Promise<void> {
@@ -48,9 +48,9 @@ export async function sendMeetingEmail(input: {
       <h2 style="margin: 0 0 8px">${input.subject}</h2>
       ${input.when ? `<div style="color:#666;margin-bottom:12px">${input.when}</div>` : ""}
       ${
-        input.aiSummary
+        input.summary
           ? `<h3>Resumo</h3><pre style="white-space:pre-wrap;background:#f6f6f6;padding:12px;border-radius:8px">${escapeHtml(
-              input.aiSummary
+              input.summary
             )}</pre>`
           : ""
       }

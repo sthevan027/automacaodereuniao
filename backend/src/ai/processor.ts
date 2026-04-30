@@ -3,9 +3,6 @@ import { z } from "zod";
 import { getEnv } from "../config/env";
 import { buildMeetingPrompt } from "./prompts";
 
-const env = getEnv();
-
-const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY });
 
 const aiOutputSchema = z.object({
   ai_summary: z.string().min(1),
@@ -69,11 +66,19 @@ export async function processMeetingWithAi(input: {
   transcript?: string | null;
   teamsSummary?: string | null;
 }): Promise<AiOutput> {
+  const env = getEnv();
+  const apiKey = env.OPENAI_API_KEY?.trim();
+  if (!apiKey) {
+    throw new Error("OPENAI_API_KEY não configurado");
+  }
+  const model = env.OPENAI_MODEL?.trim() || "gpt-4o-mini";
+  const openai = new OpenAI({ apiKey });
+
   const prompt = buildMeetingPrompt(input);
 
   const completion = await withRetries(() =>
     openai.chat.completions.create({
-      model: env.OPENAI_MODEL,
+      model,
       messages: [
         { role: "system", content: "Responda somente com JSON válido." },
         { role: "user", content: prompt }
