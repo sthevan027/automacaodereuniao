@@ -60,9 +60,8 @@ function PendingReviewForm(props: {
   meeting: MeetingDetail;
   meetingId: string;
   onUpdated: (next: MeetingDetail, opts?: { syncForm?: boolean }) => void;
-  setPageError: (msg: string | null) => void;
 }) {
-  const { meeting, meetingId, onUpdated, setPageError } = props;
+  const { meeting, meetingId, onUpdated } = props;
 
   const [company, setCompany] = useState(() => meeting.company ?? "");
   const [summary, setSummary] = useState(() =>
@@ -78,6 +77,7 @@ function PendingReviewForm(props: {
   );
   const [reviewedBy, setReviewedBy] = useState("");
   const [busy, setBusy] = useState<"approve" | "reject" | "save" | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
 
   function payloadCommon() {
     const topics = topicsText
@@ -102,7 +102,7 @@ function PendingReviewForm(props: {
 
   async function onSaveDraft() {
     setBusy("save");
-    setPageError(null);
+    setFormError(null);
     try {
       const updated = await reviewMeeting(meetingId, {
         action: "update",
@@ -110,7 +110,7 @@ function PendingReviewForm(props: {
       });
       onUpdated(updated, { syncForm: true });
     } catch (e: unknown) {
-      setPageError(e instanceof Error ? e.message : "Falha ao salvar");
+      setFormError(e instanceof Error ? e.message : "Falha ao salvar");
     } finally {
       setBusy(null);
     }
@@ -118,7 +118,7 @@ function PendingReviewForm(props: {
 
   async function onApprove() {
     setBusy("approve");
-    setPageError(null);
+    setFormError(null);
     try {
       const updated = await reviewMeeting(meetingId, {
         action: "approve",
@@ -126,7 +126,7 @@ function PendingReviewForm(props: {
       });
       onUpdated(updated);
     } catch (e: unknown) {
-      setPageError(e instanceof Error ? e.message : "Falha ao aprovar/enviar");
+      setFormError(e instanceof Error ? e.message : "Falha ao aprovar/enviar");
     } finally {
       setBusy(null);
     }
@@ -134,7 +134,7 @@ function PendingReviewForm(props: {
 
   async function onReject() {
     setBusy("reject");
-    setPageError(null);
+    setFormError(null);
     try {
       const updated = await reviewMeeting(meetingId, {
         action: "reject",
@@ -143,7 +143,7 @@ function PendingReviewForm(props: {
       });
       onUpdated(updated);
     } catch (e: unknown) {
-      setPageError(e instanceof Error ? e.message : "Falha ao rejeitar");
+      setFormError(e instanceof Error ? e.message : "Falha ao rejeitar");
     } finally {
       setBusy(null);
     }
@@ -284,6 +284,11 @@ function PendingReviewForm(props: {
             {busy === "reject" ? "Processando…" : "Rejeitar"}
           </button>
         </div>
+        {formError ? (
+          <div className="rounded-lg border border-rose-900/40 bg-rose-950/40 p-3 text-sm text-rose-200">
+            {formError}
+          </div>
+        ) : null}
       </div>
     </section>
   );
@@ -406,7 +411,6 @@ export function MeetingDetailPage() {
                 meeting={data}
                 meetingId={meetingId}
                 onUpdated={handleMeetingUpdated}
-                setPageError={setError}
               />
             ) : (
               <>

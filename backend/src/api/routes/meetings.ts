@@ -50,22 +50,26 @@ export function meetingsRouter() {
     }
 
     const { q, from, to, company, status, page, pageSize } = parsed.data;
-    const data = await getMeetings({
-      q,
-      start: from ? new Date(from) : undefined,
-      end: to ? new Date(to) : undefined,
-      company,
-      status,
-      page,
-      limit: pageSize
-    });
+    try {
+      const data = await getMeetings({
+        q,
+        start: from ? new Date(from) : undefined,
+        end: to ? new Date(to) : undefined,
+        company,
+        status,
+        page,
+        limit: pageSize
+      });
 
-    res.json({
-      page,
-      pageSize,
-      total: data.total,
-      items: data.rows
-    });
+      res.json({
+        page,
+        pageSize,
+        total: data.total,
+        items: data.rows
+      });
+    } catch (e: any) {
+      res.status(500).json({ error: e?.message ?? "erro interno" });
+    }
   });
 
   r.patch("/:id", async (req, res) => {
@@ -164,13 +168,17 @@ export function meetingsRouter() {
       qParsed.data.includeTranscript === "1" || qParsed.data.includeTranscript === "true";
 
     const id = String(req.params.id);
-    const meeting = await getMeetingById(id);
-    if (!meeting) return res.status(404).json({ error: "not_found" });
-    if (!includeTranscript) {
-      res.json({ ...meeting, transcript: null });
-      return;
+    try {
+      const meeting = await getMeetingById(id);
+      if (!meeting) return res.status(404).json({ error: "not_found" });
+      if (!includeTranscript) {
+        res.json({ ...meeting, transcript: null });
+        return;
+      }
+      res.json(meeting);
+    } catch (e: any) {
+      res.status(500).json({ error: e?.message ?? "erro interno" });
     }
-    res.json(meeting);
   });
 
   return r;
