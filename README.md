@@ -1,8 +1,16 @@
-# Automação de Reuniões — Teams + IA
+# AtaAI — Atas inteligentes de reuniões
 
 ![Status](https://img.shields.io/badge/status-em%20produ%C3%A7%C3%A3o-success)
 
 ![Node.js](https://img.shields.io/badge/Node.js-339933?logo=nodedotjs&logoColor=white) ![Express](https://img.shields.io/badge/Express-4-000000?logo=express&logoColor=white) ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white) ![OpenAI](https://img.shields.io/badge/OpenAI-412991?logo=openai&logoColor=white) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white) ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
+
+## 🚀 Evolução: de sincronizador para assistente de atas
+
+**De → Para:** de pipeline Teams→OpenAI para assistente de ata com follow-up acionável.
+
+**Novas funcionalidades:** ata estruturada com extração de action items (responsável e prazo); envio automático do resumo por e-mail e WhatsApp; busca semântica nas atas anteriores.
+
+**Mudanças na lógica:** a saída deixa de ser texto livre e vira estrutura (decisões, tarefas, donos); os action items viram entidades rastreáveis com status; indexação por embeddings para busca.
 
 Base completa para:
 - Sincronizar reuniões/transcrições/resumos do Microsoft Teams (via Microsoft Graph)
